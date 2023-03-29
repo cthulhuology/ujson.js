@@ -12,7 +12,18 @@ encoded messages.
 
 The main reference for ujson is https://github.com/cthulhuology/ujson
 
-TODO: currently decoding and schemas are not implemented
+This module has two functions ujson.encode and ujson.decode.  Encode
+takes multiple arguments and returns a Uint8Array buffer with encoded
+in the dynamic ujson encoding format.  It supports all of the typical
+types and tries to use the smallest type appropriate for the data. If
+multiple objects or values are passed, the encoded values will all be
+concatenated together.
+
+The decode function takes a Uint8Array and will return an array of all
+of the decoded values.  So for example, if the buffer contains multiple
+messages, each message will be parsed and returned as a separate array
+element.  This makes it easier to handle cases where multiple messages
+are receieved in a single frame.
 
 
 MIT License

@@ -101,4 +101,55 @@ function binary() {
 	return b
 }
 
-module.exports = { bytes, binary, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64 } 
+function asByte(b,o) {
+	return String.fromCharCode(b[o])
+}
+
+function asBytes(b,o,l) {
+	return (new TextDecoder).decode(b.slice(o,o+l).buffer)
+}
+
+function asI8(b,o) {
+	var c = new Int8Array(1)
+	c[0] = b[o]
+	return c[0]
+}
+
+function asU8(b,o) {
+	return b[o]
+}
+
+function asI16(b,o) {
+	return (new Int16Array(b.slice(o,o+2).buffer))[0]
+}
+
+function asU16(b,o) {
+	return (new Uint16Array(b.slice(o,o+2).buffer))[0]
+}
+
+function asI32(b,o) {
+	return (new Int32Array(b.slice(o,o+4).buffer))[0]
+}
+
+function asU32(b,o) {
+	return (new Uint32Array(b.slice(o,o+4).buffer))[0]
+}
+
+function asI64(b,o) {
+	return (new Int64Array(b.slice(o,o+8).buffer))[0]
+}
+
+function asU64(b,o) {
+	return (new Uint64Array(b.slice(o,o+8).buffer))[0]
+}
+
+function asF32(b,o) {
+	return (new Float32Array(b.slice(o,o+4).buffer))[0]
+}
+
+function asF64(b,o) {
+	return (new Float64Array(b.slice(o,o+4).buffer))[0]
+}
+
+
+module.exports = { bytes, binary, i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, asByte, asBytes, asI8, asU8, asI16, asU16, asI32, asU32, asI64, asU64, asF32, asF64 }

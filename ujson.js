@@ -41,17 +41,25 @@ function tag_float(x) {
 }
 
 function tag_string(x) {
-	return byte.binary(byte.u16(x.length), byte.bytes(x))
+	var str = byte.bytes(x)
+	return byte.binary(byte.bytes('s'), byte.u16(str.length), str)
 }
 
 function tag_array(x) {
-	return byte.binary(byte.bytes('a'), byte.u16(x.length), ...x.map( (e) => { return tag(e) }))
+	var arr = byte.binary( ...x.map( (e) => { return tag(e) }) )
+	return byte.binary(byte.bytes('a'), byte.u16(arr.length), arr)
+}
+
+function tag_blob(x) {
+	return byte.binary(byte.bytes('b'), byte.u32(x.length), x)
 }
 
 function tag_object(x) {
 	var ks = Object.keys(x)
-	return byte.binary(byte.bytes('o'), byte.u16(ks.length), byte.binary(...ks.map( (k) => {
-		return byte.binary( byte.u16(k.length), byte.bytes(k), tag(x[k])) })))
+	var obj = byte.binary(...ks.map( (k) => { 
+		return byte.binary( byte.u16(k.length), byte.bytes(k), tag(x[k])) 
+	}))
+	return byte.binary(byte.bytes('o'), byte.u16(obj.length), obj)
 }
 
 function tag(x) {
@@ -69,21 +77,96 @@ function tag(x) {
 		case 'object':
 			if (x === null) return byte.bytes('n')
 			if (Array.isArray(x)) return tag_array(x)
+			if (x instanceof Uint8Array) return tag_blob(x)
 			return tag_object(x)
 		default:
 			console.log("unknown type... don't do functions")
 	}
-} 
+}
 
+function detag_array(b,o,l) {
+	var arr = []
+	for (var i = o; i < o+l; ) {
+		var x = detag(b,i)
+		console.log(x)
+		arr.push(x[0])
+		i = x[1]
+	}
+	console.log(arr)
+	return [ arr, o+l ]
+}
+
+function detag_object(b,o,l) {
+	var obj = {}
+	for (var i = o; i < o+l;) {
+		var kl = byte.asU16(b,i)
+		var k = byte.asBytes(b,i+2,kl)
+		var v = detag(b,i+2+kl)
+		obj[k] = v[0]
+		i = v[1]
+	}
+	return [ obj, o+l ]
+}
+
+function detag(b,o) {
+	switch(byte.asByte(b,o)) {
+		case 'n':
+			return [ nil, o + 1 ]
+		case 't':
+			return [ true, o + 1 ]
+		case 'f':
+			return [ false, o + 1 ]
+		case 'c':
+			return [ byte.asI8(b,o+1), o + 2 ]
+		case 'C':
+			return [ byte.asU8(b,o+1), o + 2 ]
+		case 'w':
+			return [ byte.asI16(b,o+1), o + 3 ]
+		case 'W':
+			return [ byte.asU16(b,o+1), o + 3 ]
+		case 'i':
+			return [ byte.asI32(b,o+1), o + 5 ]
+		case 'I':
+			return [ byte.asU32(b,o+1), o + 5 ]
+		case 'q':
+			return [ byte.asI64(b,o+1), o + 9 ]
+		case 'Q':
+			return [ byte.asU64(b,o+1), o + 9 ]
+		case 'd':
+			return [ byte.asF32(b,o+1), o + 5 ]
+		case 'D':
+			return [ byte.asF64(b,o+1), o + 9 ]
+		case 's':
+			var l = byte.asU16(b,o+1)
+			return [ byte.asBytes(b,o+3,l), o + 3 + l ]
+		case 'b':
+			var l = byte.asU32(b,o+1)
+			return [ b.slice(o+5,o+5+l), o + 5 + l ]
+		case 'a':
+			var l = byte.asU16(b,o+1)
+			return detag_array(b,o+3,l)
+		case 'o':
+			var l = byte.asU16(b,o+1)
+			return detag_object(b,o+3,l)
+		default:
+			console.log('unknown encoding')
+	}
+}
 
 function encode() {
 	var args = [...arguments]
 	return byte.binary(...args.map( (x) => tag(x) ))
 }
 
-function decode() {
-	console.log("TODO implement me")
+function decode(b) {
+	var l = b.length
+	var acc = []
+	for (var i = 0; i < l; ) {
+		var v = detag(b,i)
+		acc.push(v[0])	
+		i = v[1]
+	}
+	return acc
 }
-
 
 module.exports = { encode, decode }
